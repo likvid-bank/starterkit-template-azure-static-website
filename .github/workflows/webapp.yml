@@ -1,0 +1,179 @@
+name: Azure Static Web Apps CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches: [main]
+
+# Environment variables available to all jobs and steps in this workflow
+env:
+  # Configure terraform to use UAMI set up by the starterkit building block using workload identity federation.
+  # We use enviornment variables here because this allows you to use the same provider.tf and backend.tf files when
+  # checking out the repo locally for working with terraform, falling back to Azure CLI authentication.
+  # See https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs#argument-reference
+  ARM_USE_OIDC: "true"
+  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+
+  # For instructions on setting up the appropriate configuration values go to https://docs.microsoft.com/azure/static-web-apps/front-end-frameworks
+  APP_LOCATION: "/" # location of your client code
+  API_LOCATION: "api" # location of your api source code - optional
+  APP_ARTIFACT_LOCATION: "build" # location of client code build output
+
+  tf_actions_working_dir: "infra"
+
+jobs:
+  # note: this shows _one_ way of setting up a CI/CD pipeline for your app that involves deploying infrastructure
+  # via terraform and deploying the app via the native Azure Static Website deploy action.
+
+  # Our aim here is to keep it simple and have one integrated workflow. The implementation here uses "terraform output"
+  # to pass variables from terraform infrastructure into the app's code build & deploy step (using GitHub actions outputs).
+  # There are quite a few alternatives for implementing this, e.g. separating infrastructure and code build into separate
+  # workflows.
+
+  infra:
+    name: Deploy Infrastructure via Terraform
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+    environment:
+      name: sandbox
+    defaults:
+      run:
+        working-directory: ${{ env.tf_actions_working_dir }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.5"
+          terraform_wrapper: true # we want the wrapper here
+
+      - run: terraform init
+
+      - run: terraform validate -no-color
+        id: validate
+
+      - run: terraform plan -no-color
+        id: plan
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+
+      - uses: actions/github-script@v6
+        if: github.event_name == 'pull_request'
+        env:
+          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            <details><summary>Validation Output</summary>
+
+            \`\`\`\n
+            ${{ steps.validate.outputs.stdout }}
+            \`\`\`
+
+            </details>
+
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${process.env.PLAN}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.tf_actions_working_dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
+
+      # this auto-applies any changes when merging to main branch
+      - run: terraform apply -auto-approve
+        if: github.event_name == 'push'
+
+  build_and_deploy_job:
+    name: Build and Deploy Job
+    needs: infra
+    permissions:
+      id-token: write # for workload identity federation to Azure
+      contents: read # for actions/checkout to fetch code
+      pull-requests: write # for Azure/static-web-apps-deploy to comment on PRs
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    environment:
+      name: sandbox
+    defaults:
+      run:
+        working-directory: ${{ env.tf_actions_working_dir }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.5"
+          terraform_wrapper: false # the wrapper breaks output formatting
+      - run: terraform init
+      - name: save api token
+        id: save_api_token
+        run: |
+          the_secret=$(terraform output -raw api_key)
+          echo "::add-mask::$the_secret"
+          echo "azure_static_web_apps_api_token=$the_secret" >> "$GITHUB_OUTPUT"
+      - name: Build And Deploy
+        id: builddeploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{steps.save_api_token.outputs.azure_static_web_apps_api_token}}
+          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
+          action: "upload"
+
+          ###### Repository/Build Configurations - These values can be configured to match you app requirements. ######
+          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
+          app_location: ${{ env.APP_LOCATION }}
+          api_location: ${{ env.API_LOCATION }}
+          app_artifact_location: ${{ env.APP_ARTIFACT_LOCATION }}
+          ###### End of Repository/Build Configurations ######
+
+  close_pull_request_job:
+    name: Close Pull Request Job
+    needs: infra
+    permissions:
+      contents: none
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    environment:
+      name: sandbox
+    defaults:
+      run:
+        working-directory: ${{ env.tf_actions_working_dir }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.5"
+          terraform_wrapper: false # the wrapper breaks output formatting
+      - run: terraform init
+      - name: save api token
+        id: save_api_token
+        run: |
+          the_secret=$(terraform output -raw api_key)
+          echo "::add-mask::$the_secret"
+          echo "azure_static_web_apps_api_token=$the_secret" >> "$GITHUB_OUTPUT"
+
+      - name: Close Pull Request
+        id: closepullrequest
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{needs.infra.outputs.azure_static_web_apps_api_token}}
+          action: "close"
