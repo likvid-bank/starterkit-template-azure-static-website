@@ -15,25 +15,39 @@ from Likvid Bank's Cloud Foundation Portal (meshStack). You now have
 
 ## Using this Starter Kit
 
-### Level 1 - Change the HTML
+### Level 1 - Change the HTML and API
 
-Let's verify that this starter kit works. Go ahead and make some changes to [index.html](./index.html)
-You should see the deployment pipeline running
+This repo is used as a starter for a _very basic_ web application with an API.
 
-### Level 2 - Change the Terraform
+Let's verify that this starter kit works. Go ahead and make some changes to [src/index.html](./src/index.html) and open a pull request.
 
-Now let's add another file to the website. In this simple example, this means editing the terraform code in 
-[main.tf](./main.tf). 
+You should see the deployment pipeline running and the changes go live in a dedicated preview environment a few seconds afterwards.
+You will see the URL for your preview environment added as a comment to your PR once the build is completed.
 
-### Level 3 - Change the Pipeline
+> [Azure Static Web Apps](https://docs.microsoft.com/azure/static-web-apps/overview) allows you to easily build Javascript apps in minutes.
+> Use this repo with the [Add an API to Static Web Apps with Azure Functions](https://docs.microsoft.com/azure/static-web-apps/add-api?tabs=vanilla-javascript) article to build and customize the static site.
+
+The API in this example is implemeted as a serverless Azure Function. You can edit it at [api/GetMessage/index.js](./api/GetMessage/index.js).
+
+### Level 2 - Change the Pipeline
 
 This example is simple on purpose and doesn't do much validation in the deployment pipeline. You can add more steps
-and checks in the pipeline if you want
+and checks in the pipeline if you want. See [github/workflows/test.yml](./github/workflows/test.yml) for an example
+of how to run playwright tests for your app in GitHub actions.
+
+### Level 3 - Change the Infrastructure with Terraform
+
+Before we make any changes head over to your Subscription and inspect the `app` resource group, where you will find
+the static website and its resources on Azure Portal.
+
+Now let's try changing the infrastructure of our app, for example by adding a custom domain using a [`azurerm_static_site_domain`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/static_site_custom_domain) resource to
+[main.tf](./main.tf). 
 
 ### Level 4 - Understand the Pipeline
 
-There's a few elements that make this example work. These were setup for you (again, using terraform) by a building
-block managed outside of this repository. You can check out the source code at https://github.com/likvid-bank/likvid-cloudfoundation/tree/feature/starterkit/kit/buildingblocks/starterkit/buildingblock
+There's a few elements that make the starter kit and its pipeline work with your Azure subscription.
+These were setup for you (again, using terraform) by a building block provided by the Likvid Bank DevOps Toolchain team.
+You can check out the source code of what was deployed for you at https://github.com/likvid-bank/likvid-cloudfoundation/tree/feature/starterkit/kit/buildingblocks/starterkit/buildingblock
 
 You will find the infrastructure in the `ci-cd` resource group in your subscription.
 
@@ -48,3 +62,8 @@ The building block did set up for you
 
 Leveraging everything you've learned by now, you are now ready to get yourselves a cloud-native Landing Zone subscription, an empty GitHub repository and build
 up a development environment tailored to your needs!
+
+## Acknowledgements
+
+This template reuses parts from the Azure static website template https://github.com/staticwebdev/vanilla-api
+You can derive more similar starter templates from https://github.com/staticwebdev/ - feel free to make your own!
