@@ -32,7 +32,7 @@ The API in this example is implemeted as a serverless Azure Function. You can ed
 ### Level 2 - Change the Pipeline
 
 This example is simple on purpose and doesn't do much validation in the deployment pipeline. You can add more steps
-and checks in the pipeline if you want. See [github/workflows/test.yml](./github/workflows/test.yml) for an example
+and checks in the pipeline if you want. See [.github/workflows/test.yml](./github/workflows/test.yml) for an example
 of how to run playwright tests for your app in GitHub actions.
 
 ### Level 3 - Change the Infrastructure with Terraform
