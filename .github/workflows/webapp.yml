@@ -48,10 +48,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: opentofu/setup-opentofu@v1.0.4
         with:
-          terraform_version: "1.5.5"
-          terraform_wrapper: true # we want the wrapper here
+          tofu_version: 1.7.1
 
       - run: terraform init
 
@@ -118,10 +117,9 @@ jobs:
         working-directory: ${{ env.tf_actions_working_dir }}
     steps:
       - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: opentofu/setup-opentofu@v1.0.4
         with:
-          terraform_version: "1.5.5"
-          terraform_wrapper: false # the wrapper breaks output formatting
+          tofu_version: 1.7.1
       - run: terraform init
       - name: save api token
         id: save_api_token
@@ -159,10 +157,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: opentofu/setup-opentofu@v1.0.4
         with:
-          terraform_version: "1.5.5"
-          terraform_wrapper: false # the wrapper breaks output formatting
+          tofu_version: 1.7.1
       - run: terraform init
       - name: save api token
         id: save_api_token
