@@ -40,7 +40,7 @@ of how to run playwright tests for your app in GitHub actions.
 Before we make any changes head over to your Subscription and inspect the `app` resource group, where you will find
 the static website and its resources on Azure Portal.
 
-Now let's try changing the infrastructure of our app, for example by adding a custom domain using a [`azurerm_static_site_domain`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/static_site_custom_domain) resource to
+Now let's try changing the infrastructure of our app, for example by adding a custom domain using a [`azurerm_static_web_app_domain`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/static_site_custom_domain) resource to
 [main.tf](./main.tf). 
 
 ### Level 4 - Understand the Pipeline
