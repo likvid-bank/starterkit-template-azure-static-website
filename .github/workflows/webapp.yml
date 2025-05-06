@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: opentofu/setup-opentofu@v1.0.4
+      - uses: opentofu/setup-opentofu@v1.0.5
         with:
           tofu_version: 1.7.1
 
@@ -117,7 +117,7 @@ jobs:
         working-directory: ${{ env.tf_actions_working_dir }}
     steps:
       - uses: actions/checkout@v4
-      - uses: opentofu/setup-opentofu@v1.0.4
+      - uses: opentofu/setup-opentofu@v1.0.5
         with:
           tofu_version: 1.7.1
       - run: tofu init
@@ -157,7 +157,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: opentofu/setup-opentofu@v1.0.4
+      - uses: opentofu/setup-opentofu@v1.0.5
         with:
           tofu_version: 1.7.1
       - run: tofu init
